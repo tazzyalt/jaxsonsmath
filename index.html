@@ -65,7 +65,7 @@
     }
 
     .cac-header {
-      background: url('https://github.com/tazzyalt/jaxsonsmath/blob/main/logo.png?raw=true') center/cover;
+      background: url('/images/logo.png') center/cover;
       width: 100%;
       aspect-ratio: 5/2;
       border-radius: 16px;
@@ -197,7 +197,7 @@
       align-items: center;
     }
 
-    #searchInput {
+    #searchInput, #appsSearchInput {
       background: #252525;
       border: 2px solid #444;
       color: white;
@@ -208,11 +208,11 @@
       font-size: 1.1vw;
     }
 
-    #searchInput:focus {
+    #searchInput:focus, #appsSearchInput:focus {
       outline: none;
     }
 
-    #searchInput::placeholder {
+    #searchInput::placeholder, #appsSearchInput::placeholder {
       color: white;
       opacity: 0.75;
     }
@@ -237,13 +237,13 @@
       outline: none;
     }
 
-    #gameGallery, #recentGallery {
+    #gameGallery, #recentGallery, #appsGallery {
       display: flex;
       flex-direction: column;
       gap: 1.2rem;
     }
 
-    .game-card {
+    .game-card, .app-card {
       background: var(--bg3);
       padding: 1.5rem 1.4rem;
       border-radius: 16px;
@@ -253,7 +253,7 @@
       color: white;
     }
 
-    .game-card:hover {
+    .game-card:hover, .app-card:hover {
       background: #4a4a4a;
       filter: brightness(1.15);
       transform: translateY(-4px) scale(1.02);
@@ -310,7 +310,7 @@
       transform: scale(1.1);
     }
 
-    #loading {
+    #loading, #appsLoading {
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -426,7 +426,7 @@
     <div id="gamesPage" class="maincontent">
       <div class="maincontent-header">
         <h1 class="maincontent-header-text">Games</h1>
-        <p class="page-description">very tufff games by truffled</p>
+        <p class="page-description">change this description before launch</p>
       </div>
 
       <div class="search-container">
@@ -449,6 +449,26 @@
           <div>Loading games...</div>
         </div>
         <div id="gameGallery" class="gallery-container"></div>
+      </div>
+    </div>
+
+    <div id="appsPage" class="maincontent">
+      <div class="maincontent-header">
+        <h1 class="maincontent-header-text">Apps</h1>
+        <p class="page-description">useful tools & utilities</p>
+      </div>
+
+      <div class="search-container">
+        <input type="text" id="appsSearchInput" placeholder="search through 0 apps"/>
+      </div>
+
+      <div id="appsSection">
+        <h2 class="section-title">All Apps</h2>
+        <div id="appsLoading" class="text-center py-12">
+          <div class="spinner"></div>
+          <div>Loading apps...</div>
+        </div>
+        <div id="appsGallery" class="gallery-container"></div>
       </div>
     </div>
 
@@ -485,8 +505,8 @@
         <p>Made with ❤️ by jaxson bunch</p>
       </div>
       <div class="credits-card">
-        <h2>Games</h2>
-        <p>Game source: Truffled.lol</p>
+        <h2>Games & Apps</h2>
+        <p>Hosted on your web server</p>
       </div>
     </div>
   </div>
@@ -494,7 +514,7 @@
 
 <div id="floatingGame">
   <div id="gameHeader" style="background:var(--bg3); padding:1rem 1.5rem; display:flex; justify-content:space-between; align-items:center; cursor:move;">
-    <strong id="gameTitle">Game</strong>
+    <strong id="gameTitle">Item</strong>
     <div style="display:flex; gap:8px;">
       <button onclick="toggleFullscreen()" title="Fullscreen"><i class="fas fa-expand"></i></button>
       <button onclick="closeFloatingGame()" title="Close"><i class="fas fa-times"></i></button>
@@ -508,10 +528,11 @@
 <script>
 let currentPage = 'games';
 let gamesData = [];
-let currentGame = null;
+let appsData = [];
+let currentItem = null;
 let recentlyPlayed = [];
 
-const BASE_URL = "https://truffled.lol";
+const BASE_URL = "";  // Leave empty for relative paths (same domain)
 
 function loadRecentlyPlayed() {
   const saved = localStorage.getItem('jaxsons_recent');
@@ -522,9 +543,9 @@ function saveRecentlyPlayed() {
   localStorage.setItem('jaxsons_recent', JSON.stringify(recentlyPlayed));
 }
 
-function addToRecentlyPlayed(game) {
-  recentlyPlayed = recentlyPlayed.filter(g => g.name !== game.name);
-  recentlyPlayed.unshift(game);
+function addToRecentlyPlayed(item) {
+  recentlyPlayed = recentlyPlayed.filter(g => g.name !== item.name);
+  recentlyPlayed.unshift(item);
   if (recentlyPlayed.length > 20) recentlyPlayed.pop();
   saveRecentlyPlayed();
   renderRecentlyPlayed();
@@ -537,11 +558,11 @@ function renderRecentlyPlayed() {
     container.innerHTML = '<p style="opacity:0.6; padding:1rem;">No recently played games yet.</p>';
     return;
   }
-  recentlyPlayed.forEach(game => {
+  recentlyPlayed.forEach(item => {
     const card = document.createElement('div');
     card.className = 'game-card';
-    card.textContent = game.name;
-    card.onclick = () => openGame(game);
+    card.textContent = item.name;
+    card.onclick = () => openItem(item);
     container.appendChild(card);
   });
   container.classList.remove('gallery-container');
@@ -549,26 +570,28 @@ function renderRecentlyPlayed() {
   container.classList.add('gallery-container');
 }
 
-async function listZones() {
+async function loadGames() {
   const loading = document.getElementById('loading');
   const gallery = document.getElementById('gameGallery');
   loading.style.display = 'flex';
   gallery.style.display = 'none';
 
   try {
-    const response = await fetch('https://raw.githubusercontent.com/aukak/truffled/refs/heads/main/public/js/json/g.json?t=' + Date.now());
-    const data = await response.json();
+    const res = await fetch('https://api.github.com/repos/tazzyalt/seraph/contents/games');
+    const items = await res.json();
     
-    gamesData = data.games.map(game => ({
-      name: game.name,
-      url: BASE_URL + (game.url.startsWith('/') ? game.url : '/' + game.url)
-    })).sort((a, b) => a.name.localeCompare(b.name));
+    gamesData = items
+      .filter(item => item.type === 'dir')
+      .map(dir => ({
+        name: dir.name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+        url: `${BASE_URL}/games/${dir.name}/index.html`
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
 
     renderGames();
     updateSearchPlaceholder();
-    renderRecentlyPlayed();
-  } catch (error) {
-    console.error(error);
+  } catch (e) {
+    console.error(e);
     gallery.innerHTML = `<div class="text-white text-center py-12">Failed to load games</div>`;
   } finally {
     loading.style.display = 'none';
@@ -576,8 +599,32 @@ async function listZones() {
   }
 }
 
-function updateSearchPlaceholder() {
-  document.getElementById('searchInput').placeholder = `search through ${gamesData.length} games`;
+async function loadApps() {
+  const loading = document.getElementById('appsLoading');
+  const gallery = document.getElementById('appsGallery');
+  loading.style.display = 'flex';
+  gallery.style.display = 'none';
+
+  try {
+    const res = await fetch('https://api.github.com/repos/tazzyalt/seraph/contents/apps');
+    const items = await res.json();
+    
+    appsData = items
+      .filter(item => item.type === 'dir')
+      .map(dir => ({
+        name: dir.name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+        url: `${BASE_URL}/apps/${dir.name}/index.html`
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    renderApps();
+  } catch (e) {
+    console.error(e);
+    gallery.innerHTML = `<div class="text-white text-center py-12">Failed to load apps</div>`;
+  } finally {
+    loading.style.display = 'none';
+    gallery.style.display = 'flex';
+  }
 }
 
 function renderGames(filtered = null) {
@@ -585,17 +632,37 @@ function renderGames(filtered = null) {
   container.innerHTML = '';
   const toRender = filtered || gamesData;
 
-  toRender.forEach((game) => {
+  toRender.forEach(item => {
     const card = document.createElement('div');
     card.className = 'game-card';
-    card.textContent = game.name;
-    card.onclick = () => openGame(game);
+    card.textContent = item.name;
+    card.onclick = () => openItem(item);
     container.appendChild(card);
   });
-  
   container.classList.remove('gallery-container');
   void container.offsetWidth;
   container.classList.add('gallery-container');
+}
+
+function renderApps(filtered = null) {
+  const container = document.getElementById('appsGallery');
+  container.innerHTML = '';
+  const toRender = filtered || appsData;
+
+  toRender.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'app-card';
+    card.textContent = item.name;
+    card.onclick = () => openItem(item);
+    container.appendChild(card);
+  });
+  container.classList.remove('gallery-container');
+  void container.offsetWidth;
+  container.classList.add('gallery-container');
+}
+
+function updateSearchPlaceholder() {
+  document.getElementById('searchInput').placeholder = `search through ${gamesData.length} games`;
 }
 
 function filterGames() {
@@ -616,11 +683,18 @@ function filterGames() {
   }
 }
 
-function openGame(game) {
-  addToRecentlyPlayed(game);
-  currentGame = game;
-  document.getElementById('gameTitle').textContent = game.name;
-  document.getElementById('gameFrame').src = game.url;
+function filterApps() {
+  const searchTerm = document.getElementById('appsSearchInput').value.toLowerCase().trim();
+  let filtered = appsData;
+  if (searchTerm) filtered = filtered.filter(a => a.name.toLowerCase().includes(searchTerm));
+  renderApps(filtered);
+}
+
+function openItem(item) {
+  addToRecentlyPlayed(item);
+  currentItem = item;
+  document.getElementById('gameTitle').textContent = item.name;
+  document.getElementById('gameFrame').src = item.url;
   const floating = document.getElementById('floatingGame');
   floating.style.transition = 'none';
   floating.style.transform = 'scale(0.65)';
@@ -640,7 +714,7 @@ function closeFloatingGame() {
   setTimeout(() => {
     floating.classList.remove('show');
     document.getElementById('gameFrame').src = '';
-    currentGame = null;
+    currentItem = null;
   }, 380);
 }
 
@@ -776,7 +850,7 @@ function applyCustomCloak() {
 
 function resetCloak() {
   document.title = "Jaxson's Math";
-  const defaultFavicon = "https://raw.githubusercontent.com/tazzyalt/jaxsonsmath/refs/heads/main/logo.png?token=GHSAT0AAAAAAEAE4FJSWDKMNF52UV3BAQAS2RWAA5A";
+  const defaultFavicon = "/images/logo.png";
   updateFavicon(defaultFavicon);
   saveCloak("Jaxson's Math", defaultFavicon);
   showNotification("Tab Cloak", "Reset to default");
@@ -834,6 +908,7 @@ function init() {
 
   const topItems = [
     {id: 'games', name: 'Games', icon: 'fa-gamepad'},
+    {id: 'apps', name: 'Apps', icon: 'fa-mobile-alt'},
     {id: 'settings', name: 'Settings', icon: 'fa-cog'}
   ];
 
@@ -882,12 +957,16 @@ function init() {
 
   setTimeout(() => updateHighlight(), 120);
 
-  listZones();
+  loadGames();
+  loadApps();
 
   const searchInput = document.getElementById('searchInput');
+  const appsSearchInput = document.getElementById('appsSearchInput');
   const categorySelect = document.getElementById('categorySelect');
+
   searchInput.addEventListener('input', filterGames);
   categorySelect.addEventListener('change', filterGames);
+  appsSearchInput.addEventListener('input', filterApps);
 
   const floating = document.getElementById('floatingGame');
   const header = document.getElementById('gameHeader');
@@ -909,7 +988,7 @@ function init() {
   document.addEventListener('mouseup', () => isDragging = false);
 
   if (!localStorage.getItem('cloakFavicon')) {
-    const defaultFavicon = "https://raw.githubusercontent.com/tazzyalt/jaxsonsmath/refs/heads/main/logo.png?token=GHSAT0AAAAAAEAE4FJSWDKMNF52UV3BAQAS2RWAA5A";
+    const defaultFavicon = "/images/logo.png";
     updateFavicon(defaultFavicon);
     saveCloak("Jaxson's Math", defaultFavicon);
   }
