@@ -618,6 +618,7 @@ async function loadApps() {
       .sort((a, b) => a.name.localeCompare(b.name));
 
     renderApps();
+    updateAppsSearchPlaceholder();
   } catch (e) {
     console.error(e);
     gallery.innerHTML = `<div class="text-white text-center py-12">Failed to load apps</div>`;
@@ -663,6 +664,10 @@ function renderApps(filtered = null) {
 
 function updateSearchPlaceholder() {
   document.getElementById('searchInput').placeholder = `search through ${gamesData.length} games`;
+}
+
+function updateAppsSearchPlaceholder() {
+  document.getElementById('appsSearchInput').placeholder = `search through ${appsData.length} apps`;
 }
 
 function filterGames() {
