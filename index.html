@@ -505,8 +505,8 @@
         <p>Made with ❤️ by jaxson bunch</p>
       </div>
       <div class="credits-card">
-        <h2>Games & Apps</h2>
-        <p>Hosted on your web server</p>
+        <h2>Games</h2>
+        <p>Game Source: Seraph</p>
       </div>
     </div>
   </div>
@@ -988,7 +988,7 @@ function init() {
   document.addEventListener('mouseup', () => isDragging = false);
 
   if (!localStorage.getItem('cloakFavicon')) {
-    const defaultFavicon = "/images/logo.png";
+    const defaultFavicon = "v.png";
     updateFavicon(defaultFavicon);
     saveCloak("Jaxson's Math", defaultFavicon);
   }
